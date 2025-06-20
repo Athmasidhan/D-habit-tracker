@@ -24,3 +24,7 @@ app.listen(PORT, () => {
 })
 
 // qpQqieubzquEpVmv
+
+// GoT287DNb0Ao1rqj
+
+// mongodb + srv: //log92981:GoT287DNb0Ao1rqj@cluster0.hf2znvy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0

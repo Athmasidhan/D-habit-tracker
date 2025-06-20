@@ -1,6 +1,6 @@
 import habitModel from "../models/habitModel.js";
 // Correct way to import userModel from inside /controllers
-import User from "../models/userModel.js";
+import User from "../models/usermodel.js";
 
 
 // ✅ Get User Habits (from user doc)
