@@ -4,7 +4,8 @@ import App from './App.jsx';
 import { BrowserRouter } from 'react-router-dom';
 import HabitContextProvider from './context/HabitContext.jsx';
 
-const root = createRoot(document.getElementById('root'));
+const container = document.getElementById('root');
+const root = createRoot(container);
 
 root.render(
   <BrowserRouter>

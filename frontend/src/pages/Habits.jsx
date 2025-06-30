@@ -8,10 +8,9 @@ import { toast } from "react-toastify";
 const Habits = () => {
   const { habitData = [], markComplete, addHabit, deleteHabit } = useContext(HabitContext);
 
-  const [showModel, setShowModel] = useState(false);
   const today = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(today);
-
+  const [showModal, setShowModal] = useState(false);
   const [newHabit, setNewHabit] = useState({
     name: "",
     description: "",
@@ -23,33 +22,36 @@ const Habits = () => {
     try {
       await markComplete(id);
     } catch (error) {
-      console.log("Error completing Habit", error);
+      console.error("Complete Habit Error:", error);
+      toast.error("Failed to mark as complete");
     }
   };
 
   const addHabitHandler = async (e) => {
     e.preventDefault();
+    const currentDate = new Date().toISOString().split("T")[0];
     try {
-      const currentDate = new Date().toISOString().split("T")[0];
       await addHabit(
         newHabit.name,
         newHabit.description,
         newHabit.frequency,
         [{ date: currentDate, completed: false }]
       );
-      setShowModel(false);
-      setNewHabit({ name: "", description: "", frequency: [], logs: [] }); // Reset form
+      setShowModal(false);
+      setNewHabit({ name: "", description: "", frequency: [], logs: [] });
     } catch (error) {
-      if (error.response) {
-        toast.error(error.response.data.message || "Failed to add Habit");
-      } else {
-        toast.error("An unexpected error occurred");
-      }
+      console.error("Add Habit Error:", error);
+      toast.error(error?.response?.data?.message || "An unexpected error occurred");
     }
   };
 
-  const handlerDelete = async (id) => {
-    await deleteHabit(id);
+  const handleDelete = async (id) => {
+    try {
+      await deleteHabit(id);
+    } catch (error) {
+      console.error("Delete Habit Error:", error);
+      toast.error("Failed to delete habit");
+    }
   };
 
   return (
@@ -58,10 +60,10 @@ const Habits = () => {
       <div className="flex justify-between items-center">
         <h1 className="lg:text-2xl text-lg font-bold text-white">Habit Tracker</h1>
         <div className="flex flex-col items-center">
-          <label className="text-sm md:text-lg text-white" htmlFor="date">Pick the date</label>
+          <label htmlFor="date" className="text-sm md:text-lg text-white">Pick the date</label>
           <input
-            type="date"
             id="date"
+            type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="border border-gray-400 rounded px-2 py-1 focus:outline-none shadow-lg"
@@ -69,17 +71,17 @@ const Habits = () => {
         </div>
       </div>
 
-      {/* Add Button */}
+      {/* Add Habit Button */}
       <button
-        onClick={() => setShowModel(true)}
+        onClick={() => setShowModal(true)}
         className="bg-red-600 px-4 py-2 text-white rounded-xl hover:scale-105 transition-all duration-300"
       >
         Add Habit
       </button>
 
-      {/* Add Habit Modal */}
-      {showModel && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+      {/* Modal for Adding Habit */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
             <h2 className="text-xl font-bold mb-4">Add New Habit</h2>
             <form onSubmit={addHabitHandler}>
@@ -93,6 +95,7 @@ const Habits = () => {
                   required
                 />
               </div>
+
               <div className="mb-4">
                 <label className="block text-gray-700">Description</label>
                 <textarea
@@ -102,6 +105,7 @@ const Habits = () => {
                   required
                 />
               </div>
+
               <div className="mb-4">
                 <label className="block text-gray-700">Frequency</label>
                 <select
@@ -121,10 +125,11 @@ const Habits = () => {
                   <option value="Monthly">Monthly</option>
                 </select>
               </div>
+
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"
-                  onClick={() => setShowModel(false)}
+                  onClick={() => setShowModal(false)}
                   className="bg-gray-500 text-white px-4 py-2 rounded"
                 >
                   Cancel
@@ -140,28 +145,31 @@ const Habits = () => {
 
       {/* Habit List and Analytics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Habit List */}
         <div className="col-span-2 bg-gray-100 p-4 rounded-3xl shadow">
-          <h2 className="text-2xl font-bold mb-4">Your Habits</h2>
+          <h2 className="text-2xl text-[#140746] font-bold mb-4">Your Habits</h2>
           <div className="space-y-4 overflow-y-auto h-96">
             {habitData.length === 0 ? (
               <p className="text-gray-600">No habits yet. Add one to get started!</p>
             ) : (
-              habitData.map((habit, index) => {
-                const log = (habit.logs || []).find((log) => log.date === selectedDate);
+              habitData.map((habit) => {
+                const log = (habit.logs || []).find((l) => l.date === selectedDate);
                 const completed = log?.completed;
+
                 return (
                   <div
-                    key={habit._id || index}
+                    key={habit._id}
                     className="flex items-center justify-between p-3 bg-white rounded shadow-sm border"
                   >
                     <div>
                       <h3 className={`font-semibold text-gray-800 ${completed ? "line-through" : ""}`}>
                         {habit.name}
                       </h3>
-                      <h3 className={`text-sm text-gray-600 ${completed ? "line-through" : ""}`}>
+                      <p className={`text-sm text-gray-600 ${completed ? "line-through" : ""}`}>
                         {habit.description}
-                      </h3>
+                      </p>
                     </div>
+
                     <div className="flex gap-2 items-center">
                       {selectedDate === today && (
                         <>
@@ -171,10 +179,12 @@ const Habits = () => {
                           >
                             {completed ? "Completed" : "Mark as Done"}
                           </button>
-                          <button>
+
+                          <button aria-label="Edit">
                             <FaEdit className="text-2xl text-blue-500" />
                           </button>
-                          <button onClick={() => handlerDelete(habit._id)}>
+
+                          <button onClick={() => handleDelete(habit._id)} aria-label="Delete">
                             <MdOutlineDeleteOutline className="text-2xl text-red-500" />
                           </button>
                         </>
@@ -187,7 +197,7 @@ const Habits = () => {
           </div>
         </div>
 
-        {/* Analytics Component */}
+        {/* Analytics */}
         <HabitAnalytics habits={habitData} selectedDate={selectedDate} />
       </div>
     </div>

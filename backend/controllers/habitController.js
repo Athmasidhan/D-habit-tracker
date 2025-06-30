@@ -1,24 +1,13 @@
 import habitModel from "../models/habitModel.js";
-// Correct way to import userModel from inside /controllers
 import User from "../models/usermodel.js";
 
-
-// ✅ Get User Habits (from user doc)
 const getUserHabits = async (req, res) => {
   try {
-    const userId = req.userId || req.user?.id;
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
-      });
-    }
-
-    // Optional: populate habits if stored as references
-    // const populatedUser = await user.populate('habits');
-
+    const user = await User.findById(req.user ?.id);
+    if (!user) return res.status(404).json({
+      success: false,
+      message: "User not found"
+    });
     res.status(200).json({
       success: true,
       data: user.habits || []
@@ -32,37 +21,31 @@ const getUserHabits = async (req, res) => {
   }
 };
 
-// ✅ Add Habit
 const addHabit = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    const { name, description, frequency } = req.body;
-
-    if (!name || !description || !frequency) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required"
-      });
-    }
-
-    const currentDate = new Date().toISOString().split("T")[0];
+    const {
+      name,
+      description,
+      frequency
+    } = req.body;
     const newHabit = new habitModel({
-      userId,
+      userId: req.user.id,
       name,
       description,
       frequency,
-      logs: [{ date: currentDate, completed: false }]
+      logs: [{
+        date: new Date(),
+        completed: false
+      }]
     });
-
     const savedHabit = await newHabit.save();
-
     res.status(201).json({
       success: true,
       message: "Habit added successfully",
       data: savedHabit
     });
   } catch (error) {
-    console.log("Add Habit Error:", error);
+    console.error("Add Habit Error:", error);
     res.status(500).json({
       success: false,
       message: "Internal Server Error"
@@ -70,25 +53,19 @@ const addHabit = async (req, res) => {
   }
 };
 
-// ✅ Delete Habit
 const deleteHabit = async (req, res) => {
   try {
-    const habitId = req.params.id;
-    const deletedHabit = await habitModel.findByIdAndDelete(habitId);
-
-    if (!deletedHabit) {
-      return res.status(404).json({
-        success: false,
-        message: "Habit not found"
-      });
-    }
-
+    const deletedHabit = await habitModel.findByIdAndDelete(req.params.id);
+    if (!deletedHabit) return res.status(404).json({
+      success: false,
+      message: "Habit not found"
+    });
     res.status(200).json({
       success: true,
       message: "Habit deleted successfully"
     });
   } catch (error) {
-    console.log("Delete Habit Error:", error);
+    console.error("Delete Habit Error:", error);
     res.status(500).json({
       success: false,
       message: "Internal Server Error"
@@ -96,26 +73,17 @@ const deleteHabit = async (req, res) => {
   }
 };
 
-// ✅ Get All Habits for Authenticated User
 const getHabits = async (req, res) => {
   try {
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "User not authenticated"
-      });
-    }
-
-    const habits = await habitModel.find({ userId });
-
+    const habits = await habitModel.find({
+      userId: req.user.id
+    });
     res.status(200).json({
       success: true,
       data: habits
     });
   } catch (error) {
-    console.log("Get Habits Error:", error);
+    console.error("Get Habits Error:", error);
     res.status(500).json({
       success: false,
       message: "Internal Server Error"
@@ -123,33 +91,27 @@ const getHabits = async (req, res) => {
   }
 };
 
-// ✅ Edit Habit
 const editHabits = async (req, res) => {
   try {
-    const habitId = req.params.id;
-    const userId = req.user?.id;
-    const { name, description, frequency, logs } = req.body;
-
-    const updatedHabit = await habitModel.findOneAndUpdate(
-      { _id: habitId, userId },
-      { name, description, frequency, logs },
-      { new: true }
+    const updatedHabit = await habitModel.findOneAndUpdate({
+        _id: req.params.id,
+        userId: req.user.id
+      },
+      req.body, {
+        new: true
+      }
     );
-
-    if (!updatedHabit) {
-      return res.status(404).json({
-        success: false,
-        message: "Habit not found"
-      });
-    }
-
+    if (!updatedHabit) return res.status(404).json({
+      success: false,
+      message: "Habit not found"
+    });
     res.status(200).json({
       success: true,
       message: "Habit updated successfully",
       data: updatedHabit
     });
   } catch (error) {
-    console.log("Edit Habit Error:", error);
+    console.error("Edit Habit Error:", error);
     res.status(500).json({
       success: false,
       message: "Internal Server Error"
@@ -157,46 +119,45 @@ const editHabits = async (req, res) => {
   }
 };
 
-// ✅ Mark Today's Log as Completed
 const markCompleted = async (req, res) => {
-  const habitId = req.params.id;
-  const today = new Date().toISOString().split("T")[0];
-
+  const today = new Date().setHours(0, 0, 0, 0);
   try {
-    const updatedHabit = await habitModel.findByIdAndUpdate(
-      { _id: habitId },
-      {
-        $set: {
-          "logs.$[log].completed": true
+    const updatedHabit = await habitModel.findByIdAndUpdate({
+      _id: req.params.id
+    }, {
+      $set: {
+        "logs.$[log].completed": true
+      }
+    }, {
+      new: true,
+      arrayFilters: [{
+        "log.date": {
+          $eq: new Date(today)
         }
-      },
-      {
-        new: true,
-        arrayFilters: [{ "log.date": today }]
-      }
-    );
+      }]
+    });
 
-    // If today's log doesn't exist, add it
-    if (updatedHabit) {
-      const found = updatedHabit.logs.find(log => log.date === today);
-      if (!found) {
-        updatedHabit.logs.push({ date: today, completed: true });
-        await updatedHabit.save();
-      }
+    if (!updatedHabit) return res.status(404).json({
+      success: false,
+      message: "Habit not found"
+    });
 
-      return res.status(200).json({
-        success: true,
-        message: "Habit marked as completed",
-        data: updatedHabit
+    const logExists = updatedHabit.logs.some(log => new Date(log.date).setHours(0, 0, 0, 0) === today);
+    if (!logExists) {
+      updatedHabit.logs.push({
+        date: new Date(today),
+        completed: true
       });
-    } else {
-      return res.status(404).json({
-        success: false,
-        message: "Habit not found"
-      });
+      await updatedHabit.save();
     }
+
+    res.status(200).json({
+      success: true,
+      message: "Habit marked as completed",
+      data: updatedHabit
+    });
   } catch (error) {
-    console.log("Mark Completed Error:", error);
+    console.error("Mark Completed Error:", error);
     res.status(500).json({
       success: false,
       message: "Internal Server Error"
@@ -204,7 +165,6 @@ const markCompleted = async (req, res) => {
   }
 };
 
-// ✅ Export All
 export {
   getUserHabits,
   addHabit,

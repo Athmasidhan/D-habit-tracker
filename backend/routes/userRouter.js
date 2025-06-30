@@ -10,22 +10,28 @@ import {
     deleteHabit,
     editHabits,
     getHabits,
-    markCompleted,
+    markCompleted
 } from '../controllers/habitController.js';
 
 const userRouter = express.Router();
 
-// Auth Routes
 userRouter.post('/register', register);
 userRouter.post('/login', login);
+userRouter.post('/logout', (req, res) => {
+    res.clearCookie("token");
+    res.status(200).json({
+        success: true,
+        message: "Logged out successfully"
+    });
+});
 
-// Habit Routes
-userRouter.post('/add-habits', authMiddleware, addHabit);
-userRouter.get('/habits/user', authMiddleware, getUserHabits); // changed path to avoid conflict
-// userRouter.post('/habits', authMiddleware, addHabit); // standardized route
-userRouter.delete('/habits/:id', authMiddleware, deleteHabit); // added missing middleware
-userRouter.get('/habits', authMiddleware, getHabits);
-userRouter.put('/habits/:id', authMiddleware, editHabits);
-userRouter.put('/habits/completed/:id', authMiddleware, markCompleted)
+userRouter.use(authMiddleware);
+
+userRouter.post('/habits', addHabit);
+userRouter.get('/habits/user', getUserHabits);
+userRouter.get('/habits', getHabits);
+userRouter.put('/habits/:id', editHabits);
+userRouter.put('/habits/completed/:id', markCompleted);
+userRouter.delete('/habits/:id', deleteHabit);
 
 export default userRouter;

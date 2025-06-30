@@ -4,62 +4,49 @@ import cookie from "js-cookie";
 import { toast } from "react-toastify";
 import axios from "axios";
 
-// Context creation
+// Create Context
 export const HabitContext = createContext();
 
 const HabitContextProvider = ({ children }) => {
     const navigate = useNavigate();
-
-    // States
     const [token, setToken] = useState(!!cookie.get("token"));
     const [habitData, setHabitData] = useState([]);
 
-    // Backend URL
-    const backendUrl = "http://localhost:3000";
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
-    // Helper: Get auth token from cookies
     const getAuthToken = () => cookie.get("token");
 
-    // ✅ Fetch all habits
+    const authConfig = () => ({
+        headers: {
+            Authorization: `Bearer ${getAuthToken()}`
+        }
+    });
+
+    // 🔄 Fetch Habits
     const fetchHabits = async () => {
         try {
-            const token = getAuthToken();
-            const config = {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            };
-
-            const { data } = await axios.get(`${backendUrl}/api/user/habits`, config);
-
-            if (data.success) {
-                setHabitData(data.data || []);
-            }
+            const { data } = await axios.get(`${backendUrl}/api/user/habits`, authConfig());
+            if (data.success) setHabitData(data.data || []);
         } catch (error) {
             console.error("Fetch Habits Error:", error);
             toast.error("Failed to fetch habits.");
         }
     };
-    
-    
-    // ✅ Register new user
+
+    // 📝 Register
     const handleRegister = async (name, email, password) => {
         try {
             const { data } = await axios.post(
                 `${backendUrl}/api/user/register`,
                 { name, email, password },
-                {
-                    headers: { "Content-Type": "application/json" },
-                    withCredentials: true
-                }
+                { headers: { "Content-Type": "application/json" } }
             );
 
             if (data.success) {
                 cookie.set("token", data.token, { expires: 7 });
                 setToken(true);
-                setHabitData(data.data || []);
                 toast.success(data.message || "Registered successfully");
-                navigate("/Habits");
+                navigate("/Habits", { replace: true });
             }
         } catch (error) {
             console.error("Register Error:", error);
@@ -67,24 +54,20 @@ const HabitContextProvider = ({ children }) => {
         }
     };
 
-    // ✅ User login
+    // 🔐 Login
     const handleLogin = async (email, password) => {
         try {
             const { data } = await axios.post(
                 `${backendUrl}/api/user/login`,
                 { email, password },
-                {
-                    headers: { "Content-Type": "application/json" },
-                    withCredentials: true
-                }
+                { headers: { "Content-Type": "application/json" } }
             );
 
             if (data.success) {
                 cookie.set("token", data.token, { expires: 7 });
                 setToken(true);
-                setHabitData(data.data || []);
                 toast.success(data.message || "Login successful");
-                navigate("/Habits");
+                navigate("/Habits", { replace: true });
             }
         } catch (error) {
             console.error("Login Error:", error);
@@ -92,17 +75,13 @@ const HabitContextProvider = ({ children }) => {
         }
     };
 
-    // ✅ Add new habit
+    // ➕ Add Habit
     const addHabit = async (name, description, frequency, logs = []) => {
         try {
             const { data } = await axios.post(
-                `${backendUrl}/api/user/add-habits`,
+                `${backendUrl}/api/user/habits`,
                 { name, description, frequency, logs },
-                {
-                    headers: {
-                        Authorization: `Bearer ${getAuthToken()}`
-                    }
-                }
+                authConfig()
             );
 
             if (data.success) {
@@ -116,16 +95,12 @@ const HabitContextProvider = ({ children }) => {
         }
     };
 
-    // ✅ Delete habit
+    // ❌ Delete Habit
     const deleteHabit = async (id) => {
         try {
             const { data } = await axios.delete(
                 `${backendUrl}/api/user/habits/${id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${getAuthToken()}`
-                    }
-                }
+                authConfig()
             );
 
             if (data.success) {
@@ -138,33 +113,29 @@ const HabitContextProvider = ({ children }) => {
         }
     };
 
-    // ✅ Mark habit complete
+    // ✅ Mark Habit Complete
     const markComplete = async (id) => {
         try {
             const { data } = await axios.put(
                 `${backendUrl}/api/user/habits/completed/${id}`,
                 {},
-                {
-                    headers: {
-                        Authorization: `Bearer ${getAuthToken()}`
-                    }
-                }
+                authConfig()
             );
 
-            if (data.success) fetchHabits();
+            if (data.success) {
+                fetchHabits();
+            }
         } catch (error) {
             console.error("Complete Habit Error:", error);
             toast.error("Failed to mark habit as complete");
         }
     };
-    
 
-    // Fetch habits when token is available
+    // 🔁 Auto-fetch habits on login
     useEffect(() => {
         if (token) fetchHabits();
     }, [token]);
 
-    // Provide context values
     return (
         <HabitContext.Provider
             value={{
@@ -172,7 +143,6 @@ const HabitContextProvider = ({ children }) => {
                 setToken,
                 habitData,
                 setHabitData,
-                backendUrl,
                 fetchHabits,
                 handleRegister,
                 handleLogin,

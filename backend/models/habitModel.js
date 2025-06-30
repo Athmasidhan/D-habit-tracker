@@ -3,36 +3,39 @@ import mongoose from "mongoose";
 const habitSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User", // ✅ match the exported model name from userModel
-        required: true
+        ref: "User",
+        required: true,
     },
     name: {
         type: String,
-        required: true,
-        trim: true
+        required: [true, "Habit name is required"],
+        trim: true,
     },
     description: {
         type: String,
-        required: true
+        required: [true, "Habit description is required"],
+        trim: true,
     },
-    frequency: [{
-        type: String,
-        required: true
-    }],
-    logs: [{
-        date: {
-            type: String,
-            required: true
+    frequency: {
+        type: [String],
+        enum: ["Daily", "Weekly", "Monthly"], // Match frontend values (case-sensitive)
+        required: [true, "Please select at least one frequency"],
+    },
+    logs: [
+        {
+            date: {
+                type: Date,
+                required: true,
+            },
+            completed: {
+                type: Boolean,
+                default: false,
+            },
         },
-        completed: {
-            type: Boolean,
-            default: false
-        }
-    }]
+    ],
 }, {
-    timestamps: true
+    timestamps: true,
 });
 
-const habitModel = mongoose.models.Habit || mongoose.model("Habit", habitSchema);
-
-export default habitModel;
+const Habit = mongoose.models.Habit || mongoose.model("Habit", habitSchema);
+export default Habit;

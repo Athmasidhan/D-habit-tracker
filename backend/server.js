@@ -1,30 +1,72 @@
-import express from 'express'
-import cors from 'cors'
-import 'dotenv/config'
-import connectDB from './config/mongoDB.js'
-import userRouter from './routes/userRouter.js'
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import 'dotenv/config';
+import connectDB from './config/mongoDB.js';
+import userRouter from './routes/userRouter.js';
 
-const app = express()
-const PORT = process.env.PORT || 4000
+const app = express();
+const PORT = process.env.PORT || 4000;
 
-// ✅ Fix: Enable CORS with credentials and specific origin
+// ✅ Whitelisted frontend URLs
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://athmasidhan.github.io",
+    "https://your-frontend.onrender.com"
+];
+
+// 🌐 CORS middleware
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: (origin, callback) => {
+        const allowedOrigins = [
+            "http://localhost:5173",
+            "https://athmasidhan.github.io",
+            "https://your-netlify-name.netlify.app"
+        ];
+
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.error("❌ CORS Blocked Origin:", origin);
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true
-}))
+}));
 
-app.use(express.json())
 
-connectDB()
+// 🧠 JSON parsing
+app.use(express.json());
 
-app.use('/api/user', userRouter)
+// 🔌 Connect MongoDB
+connectDB();
 
+// 📦 Routes
+app.use('/api/user', userRouter);
+
+// 🔍 Health Check
+app.get('/', (req, res) => {
+    res.send('✅ Server is up and running');
+});
+
+// ❓ Fallback route
+app.use('*', (req, res) => {
+    res.status(404).json({
+        success: false,
+        message: "❌ API route not found"
+    });
+});
+
+// 🛑 Global error handler
+app.use((err, req, res, next) => {
+    console.error("❌ Global Error:", err.stack || err.message);
+    res.status(500).json({
+        success: false,
+        message: err.message || "Internal Server Error"
+    });
+});
+
+// 🚀 Start server
 app.listen(PORT, () => {
-    console.log(`🚀 Server connected to PORT : ${PORT}`);
-})
-
-// qpQqieubzquEpVmv
-
-// GoT287DNb0Ao1rqj
-
-// mongodb + srv: //log92981:GoT287DNb0Ao1rqj@cluster0.hf2znvy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+});

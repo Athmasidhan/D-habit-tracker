@@ -19,7 +19,7 @@ const SignIn = () => {
     }));
   };
 
-  const handleSignIn = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     const { email, password } = userFormData;
     if (email && password) {
@@ -30,8 +30,8 @@ const SignIn = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#140746]">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Sign in</h2>
-        <form onSubmit={handleSignIn} className="space-y-4">
+        <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Sign In</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-gray-700 font-medium mb-2">
               Email Address
@@ -68,7 +68,7 @@ const SignIn = () => {
             type="submit"
             className="w-full bg-[#140746] text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300"
           >
-            Sign in
+            Sign In
           </button>
         </form>
 
